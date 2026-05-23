@@ -11,8 +11,7 @@ export async function POST(req: Request) {
 
     const completion =
       await client.chat.completions.create({
-        model: "llama3-8b-8192",
-        stream: true,
+        model: "llama-3.3-70b-versatile",
         messages: [
           {
             role: "user",
@@ -21,39 +20,22 @@ export async function POST(req: Request) {
         ],
       });
 
-    const encoder = new TextEncoder();
+    const reply =
+      completion.choices[0]?.message?.content;
 
-    const stream = new ReadableStream({
-      async start(controller) {
-        for await (const chunk of completion) {
-          const text =
-            chunk.choices[0]?.delta?.content || "";
-
-          controller.enqueue(
-            encoder.encode(
-              JSON.stringify({
-                response: text,
-              }) + "\n"
-            )
-          );
-        }
-
-        controller.close();
-      },
-    });
-
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/plain",
-      },
+    return Response.json({
+      reply,
     });
   } catch (error) {
-    console.error(error);
+    console.error(
+      "FULL API ERROR:",
+      error
+    );
 
-    return new Response(
-      JSON.stringify({
-        error: "Something went wrong",
-      }),
+    return Response.json(
+      {
+        error: "API failed",
+      },
       {
         status: 500,
       }

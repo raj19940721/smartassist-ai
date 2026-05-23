@@ -185,11 +185,28 @@ export default function Home() {
         }),
       });
 
-      const reader = res.body?.getReader();
+      const data = await res.json();
 
-      if (!reader) return;
+      const aiMessage = {
+        role: "assistant",
+        content: data.reply,
+      };
 
-      const decoder = new TextDecoder();
+      setSessions((prev) =>
+        prev.map((session) =>
+          session.id === activeSessionId
+            ? {
+              ...session,
+              messages: [
+                ...session.messages,
+                aiMessage,
+              ],
+            }
+            : session
+        )
+      );
+
+
 
       let aiResponse = "";
 
@@ -210,41 +227,7 @@ export default function Home() {
         })
       );
 
-      while (true) {
-        const { done, value } = await reader.read();
 
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-
-        const lines = chunk
-          .split("\n")
-          .filter((line) => line.trim() !== "");
-
-        for (const line of lines) {
-          const parsed = JSON.parse(line);
-
-          aiResponse += parsed.response || "";
-
-          setSessions((prev) =>
-            prev.map((session) => {
-              if (session.id !== activeSessionId) return session;
-
-              const updatedMessages = [...session.messages];
-
-              updatedMessages[updatedMessages.length - 1] = {
-                role: "assistant",
-                content: aiResponse,
-              };
-
-              return {
-                ...session,
-                messages: updatedMessages,
-              };
-            })
-          );
-        }
-      }
     } catch (error) {
       console.error(error);
     } finally {
