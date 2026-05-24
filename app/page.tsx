@@ -5,10 +5,7 @@ import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import jsPDF from "jspdf";
-import {
-  SignInButton,
-  UserButton,
-} from "@clerk/nextjs";
+import { SignInButton, UserButton } from "@clerk/nextjs";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@clerk/nextjs";
 import { v4 as uuidv4 } from "uuid";
@@ -29,18 +26,16 @@ export default function Home() {
 
   const [sessions, setSessions] = useState<ChatSession[]>([]);
 
-  const [activeSessionId, setActiveSessionId] =
-    useState<string>("");
+  const [activeSessionId, setActiveSessionId] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const [editingSessionId, setEditingSessionId] =
-    useState<string | null>(null);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
 
-  const [editedTitle, setEditedTitle] =
-    useState("");
+  const [editedTitle, setEditedTitle] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const activeSession = sessions.find(
-    (session) => session.id === activeSessionId
+    (session) => session.id === activeSessionId,
   );
 
   useEffect(() => {
@@ -48,7 +43,6 @@ export default function Home() {
       behavior: "smooth",
     });
   }, [activeSession?.messages]);
-
 
   useEffect(() => {
     const fetchSessions = async () => {
@@ -63,36 +57,24 @@ export default function Home() {
         });
 
       if (error) {
-        console.error(
-          "Supabase Save Error:",
-          JSON.stringify(error, null, 2)
-        );
+        console.error("Supabase Save Error:", JSON.stringify(error, null, 2));
         return;
       }
 
       if (data && data.length > 0) {
-        const formattedSessions = data.map(
-          (item) => ({
-            id: item.id,
-            title: item.title,
-            messages: item.messages || [],
-          })
-        );
+        const formattedSessions = data.map((item) => ({
+          id: item.id,
+          title: item.title,
+          messages: item.messages || [],
+        }));
 
         const uniqueSessions = Array.from(
-          new Map(
-            formattedSessions.map((item) => [
-              item.id,
-              item,
-            ])
-          ).values()
+          new Map(formattedSessions.map((item) => [item.id, item])).values(),
         );
 
         setSessions(uniqueSessions);
 
-        setActiveSessionId(
-          formattedSessions[0].id
-        );
+        setActiveSessionId(formattedSessions[0].id);
       }
     };
 
@@ -106,15 +88,13 @@ export default function Home() {
       if (sessions.length === 0) return;
 
       for (const session of sessions) {
-        const { error } = await supabase
-          .from("chat_sessions")
-          .upsert({
-            id: session.id,
-            user_id: user.id,
-            title: session.title,
-            messages: session.messages,
-            updated_at: new Date(),
-          });
+        const { error } = await supabase.from("chat_sessions").upsert({
+          id: session.id,
+          user_id: user.id,
+          title: session.title,
+          messages: session.messages,
+          updated_at: new Date(),
+        });
 
         if (error) {
           console.error(error);
@@ -124,20 +104,6 @@ export default function Home() {
 
     saveSessions();
   }, [sessions, user]);
-
-  useEffect(() => {
-    if (sessions.length === 0) {
-      const newSession = {
-        id: uuidv4(),
-        title: "New Chat",
-        messages: [],
-      };
-
-      setSessions([newSession]);
-
-      setActiveSessionId(newSession.id);
-    }
-  }, [sessions]);
 
   const sendMessage = async () => {
     if (!message.trim()) return;
@@ -151,26 +117,19 @@ export default function Home() {
       };
 
       const chatTitle =
-        message.length > 30
-          ? message.slice(0, 30) + "..."
-          : message;
+        message.length > 30 ? message.slice(0, 30) + "..." : message;
 
       setSessions((prev) =>
         prev.map((session) =>
           session.id === activeSessionId
             ? {
-              ...session,
-              title:
-                session.messages.length === 0
-                  ? chatTitle
-                  : session.title,
-              messages: [
-                ...session.messages,
-                userMessage,
-              ],
-            }
-            : session
-        )
+                ...session,
+                title:
+                  session.messages.length === 0 ? chatTitle : session.title,
+                messages: [...session.messages, userMessage],
+              }
+            : session,
+        ),
       );
 
       setMessage("");
@@ -196,38 +155,12 @@ export default function Home() {
         prev.map((session) =>
           session.id === activeSessionId
             ? {
-              ...session,
-              messages: [
-                ...session.messages,
-                aiMessage,
-              ],
-            }
-            : session
-        )
+                ...session,
+                messages: [...session.messages, aiMessage],
+              }
+            : session,
+        ),
       );
-
-
-
-      let aiResponse = "";
-
-      setSessions((prev) =>
-        prev.map((session) => {
-          if (session.id !== activeSessionId) return session;
-
-          return {
-            ...session,
-            messages: [
-              ...session.messages,
-              {
-                role: "assistant",
-                content: "",
-              },
-            ],
-          };
-        })
-      );
-
-
     } catch (error) {
       console.error(error);
     } finally {
@@ -239,17 +172,11 @@ export default function Home() {
     if (!activeSession) return;
 
     const content = activeSession.messages
-      .map(
-        (msg) =>
-          `${msg.role.toUpperCase()}:\n${msg.content}`
-      )
+      .map((msg) => `${msg.role.toUpperCase()}:\n${msg.content}`)
       .join("\n\n");
 
     const blob = new Blob([content], {
-      type:
-        type === "txt"
-          ? "text/plain"
-          : "text/markdown",
+      type: type === "txt" ? "text/plain" : "text/markdown",
     });
 
     const url = URL.createObjectURL(blob);
@@ -271,10 +198,7 @@ export default function Home() {
     const doc = new jsPDF();
 
     const content = activeSession.messages
-      .map(
-        (msg) =>
-          `${msg.role.toUpperCase()}:\n${msg.content}`
-      )
+      .map((msg) => `${msg.role.toUpperCase()}:\n${msg.content}`)
       .join("\n\n");
 
     doc.text(content, 10, 10);
@@ -284,7 +208,16 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col md:flex-row">
-      <div className="w-full md:w-72 bg-zinc-950 border-b md:border-b-0 md:border-r border-zinc-800 p-4">
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      <div
+        className={`fixed md:static top-0 left-0 h-full z-50 w-72 bg-zinc-950 border-r border-zinc-800 p-4
+        transform transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
+      >
         <button
           className="w-full bg-white text-black py-3 rounded-xl mb-4"
           onClick={async () => {
@@ -306,30 +239,26 @@ export default function Home() {
           {sessions.map((session) => (
             <div
               key={session.id}
-              className={`p-3 rounded-lg ${activeSessionId === session.id
-                ? "bg-zinc-800"
-                : "bg-zinc-900"
-                }`}
+              className={`p-3 rounded-lg ${
+                activeSessionId === session.id ? "bg-zinc-800" : "bg-zinc-900"
+              }`}
             >
               <div className="flex items-center justify-between gap-2">
                 {editingSessionId === session.id ? (
                   <input
                     autoFocus
                     value={editedTitle}
-                    onChange={(e) =>
-                      setEditedTitle(e.target.value)
-                    }
+                    onChange={(e) => setEditedTitle(e.target.value)}
                     onBlur={() => {
                       setSessions((prev) =>
                         prev.map((s) =>
                           s.id === session.id
                             ? {
-                              ...s,
-                              title:
-                                editedTitle || "New Chat",
-                            }
-                            : s
-                        )
+                                ...s,
+                                title: editedTitle || "New Chat",
+                              }
+                            : s,
+                        ),
                       );
 
                       setEditingSessionId(null);
@@ -340,13 +269,11 @@ export default function Home() {
                           prev.map((s) =>
                             s.id === session.id
                               ? {
-                                ...s,
-                                title:
-                                  editedTitle ||
-                                  "New Chat",
-                              }
-                              : s
-                          )
+                                  ...s,
+                                  title: editedTitle || "New Chat",
+                                }
+                              : s,
+                          ),
                         );
 
                         setEditingSessionId(null);
@@ -357,9 +284,10 @@ export default function Home() {
                 ) : (
                   <div
                     className="flex-1 truncate cursor-pointer"
-                    onClick={() =>
-                      setActiveSessionId(session.id)
-                    }
+                    onClick={() => {
+                      setActiveSessionId(session.id);
+                      setSidebarOpen(false);
+                    }}
                   >
                     {session.title}
                   </div>
@@ -379,14 +307,11 @@ export default function Home() {
                   <button
                     className="text-red-400"
                     onClick={async () => {
-                      const filteredSessions =
-                        sessions.filter(
-                          (s) => s.id !== session.id
-                        );
+                      const filteredSessions = sessions.filter(
+                        (s) => s.id !== session.id,
+                      );
 
-                      if (
-                        filteredSessions.length === 0
-                      ) {
+                      if (filteredSessions.length === 0) {
                         const newSession = {
                           id: uuidv4(),
                           title: "New Chat",
@@ -395,9 +320,7 @@ export default function Home() {
 
                         setSessions([newSession]);
 
-                        setActiveSessionId(
-                          newSession.id
-                        );
+                        setActiveSessionId(newSession.id);
                       } else {
                         await supabase
                           .from("chat_sessions")
@@ -405,13 +328,8 @@ export default function Home() {
                           .eq("id", session.id);
                         setSessions(filteredSessions);
 
-                        if (
-                          activeSessionId ===
-                          session.id
-                        ) {
-                          setActiveSessionId(
-                            filteredSessions[0].id
-                          );
+                        if (activeSessionId === session.id) {
+                          setActiveSessionId(filteredSessions[0].id);
                         }
                       }
                     }}
@@ -426,35 +344,27 @@ export default function Home() {
       </div>
       <div className="flex-1 p-4 md:p-6 overflow-hidden">
         <div className="max-w-3xl mx-auto">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">
-            SmartAssist AI
-          </h1>
           <button
-            className="mb-4 bg-red-500 px-4 py-2 rounded-lg"
-            onClick={() => {
-              setSessions((prev) =>
-                prev.map((session) =>
-                  session.id === activeSessionId
-                    ? { ...session, messages: [] }
-                    : session
-                )
-              );
-            }}
+            className="md:hidden mb-4 bg-zinc-800 px-4 py-2 rounded-lg"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
           >
-            Clear Chat
+            ☰ Menu
           </button>
-          <p className="text-gray-400 mb-6">
-            Your personal AI assistant
-          </p>
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold mb-2">
+                SmartAssist AI
+              </h1>
 
-          <div className="flex justify-end mb-4">
-            <SignInButton />
+              <p className="text-gray-400">Your personal AI assistant</p>
+            </div>
 
-            <div className="ml-4">
+            <div className="flex items-center gap-3">
+              <SignInButton />
+
               <UserButton />
             </div>
           </div>
-
 
           <div className="flex flex-wrap gap-3 mb-6">
             <button
@@ -499,16 +409,34 @@ export default function Home() {
             >
               Send
             </button>
+            <button
+              className="bg-red-500 text-white px-6 py-4 rounded-xl font-semibold w-full md:w-auto"
+              onClick={() => {
+                setSessions((prev) =>
+                  prev.map((session) =>
+                    session.id === activeSessionId
+                      ? {
+                          ...session,
+                          messages: [],
+                        }
+                      : session,
+                  ),
+                );
+              }}
+            >
+              Clear
+            </button>
           </div>
 
           <div className="mt-8 space-y-4">
             {activeSession?.messages.map((msg, index) => (
               <div
                 key={index}
-                className={`p-4 rounded-2xl w-fit max-w-[95%] md:max-w-full whitespace-pre-wrap overflow-x-auto ${msg.role === "user"
-                  ? "bg-blue-600 ml-auto text-white"
-                  : "bg-zinc-900 text-gray-100"
-                  }`}
+                className={`p-4 rounded-2xl w-fit max-w-[95%] md:max-w-full whitespace-pre-wrap overflow-x-auto ${
+                  msg.role === "user"
+                    ? "bg-blue-600 ml-auto text-white"
+                    : "bg-zinc-900 text-gray-100"
+                }`}
               >
                 <ReactMarkdown
                   components={{
@@ -563,5 +491,4 @@ export default function Home() {
       </div>
     </div>
   );
-
 }
