@@ -283,8 +283,8 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex">
-      <div className="w-72 bg-zinc-950 border-r border-zinc-800 p-4">
+    <div className="min-h-screen bg-black text-white flex flex-col md:flex-row">
+      <div className="w-full md:w-72 bg-zinc-950 border-b md:border-b-0 md:border-r border-zinc-800 p-4">
         <button
           className="w-full bg-white text-black py-3 rounded-xl mb-4"
           onClick={async () => {
@@ -424,9 +424,9 @@ export default function Home() {
           ))}
         </div>
       </div>
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-4 md:p-6 overflow-hidden">
         <div className="max-w-3xl mx-auto">
-          <h1 className="text-4xl font-bold mb-2">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">
             SmartAssist AI
           </h1>
           <button
@@ -456,7 +456,7 @@ export default function Home() {
           </div>
 
 
-          <div className="flex gap-3 mb-6">
+          <div className="flex flex-wrap gap-3 mb-6">
             <button
               className="bg-zinc-800 px-4 py-2 rounded-lg"
               onClick={() => exportChat("txt")}
@@ -479,7 +479,7 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col md:flex-row gap-3">
             <input
               className="flex-1 p-4 rounded-xl bg-zinc-900 border border-zinc-700 outline-none"
               placeholder="Ask something..."
@@ -494,7 +494,7 @@ export default function Home() {
 
             <button
               disabled={loading}
-              className="bg-white text-black px-6 rounded-xl font-semibold disabled:opacity-50"
+              className="bg-white text-black px-6 py-4 rounded-xl font-semibold disabled:opacity-50 w-full md:w-auto"
               onClick={sendMessage}
             >
               Send
@@ -505,7 +505,7 @@ export default function Home() {
             {activeSession?.messages.map((msg, index) => (
               <div
                 key={index}
-                className={`p-4 rounded-2xl w-fit max-w-full whitespace-pre-wrap ${msg.role === "user"
+                className={`p-4 rounded-2xl w-fit max-w-[95%] md:max-w-full whitespace-pre-wrap overflow-x-auto ${msg.role === "user"
                   ? "bg-blue-600 ml-auto text-white"
                   : "bg-zinc-900 text-gray-100"
                   }`}
