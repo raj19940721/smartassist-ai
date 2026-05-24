@@ -9,6 +9,7 @@ import { SignInButton, UserButton } from "@clerk/nextjs";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@clerk/nextjs";
 import { v4 as uuidv4 } from "uuid";
+import { Copy, Check } from "lucide-react";
 
 export default function Home() {
   const { user } = useUser();
@@ -33,6 +34,7 @@ export default function Home() {
 
   const [editedTitle, setEditedTitle] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   const activeSession = sessions.find(
     (session) => session.id === activeSessionId,
@@ -360,7 +362,11 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-3">
-              <SignInButton />
+              <SignInButton mode="modal">
+                <button className="bg-black text-white px-4 py-2 rounded-lg">
+                  Sign In
+                </button>
+              </SignInButton>
 
               <UserButton />
             </div>
@@ -432,12 +438,32 @@ export default function Home() {
             {activeSession?.messages.map((msg, index) => (
               <div
                 key={index}
-                className={`p-4 rounded-2xl w-fit max-w-[95%] md:max-w-full whitespace-pre-wrap overflow-x-auto ${
+                className={`relative p-4 pr-12 rounded-2xl w-fit max-w-[95%] md:max-w-full whitespace-pre-wrap overflow-x-auto ${
                   msg.role === "user"
                     ? "bg-blue-600 ml-auto text-white"
-                    : "bg-gray-200 text-gray-800"
+                    : "bg-white border border-gray-200 shadow-sm text-gray-800"
                 }`}
               >
+                {msg.role === "assistant" && (
+                  <button
+                    className="absolute top-3 right-3 text-gray-400 hover:text-black transition"
+                    onClick={() => {
+                      navigator.clipboard.writeText(msg.content);
+
+                      setCopiedIndex(index);
+
+                      setTimeout(() => {
+                        setCopiedIndex(null);
+                      }, 2000);
+                    }}
+                  >
+                    {copiedIndex === index ? (
+                      <Check size={18} />
+                    ) : (
+                      <Copy size={18} />
+                    )}
+                  </button>
+                )}
                 <ReactMarkdown
                   components={{
                     code({ className, children }) {
@@ -466,14 +492,6 @@ export default function Home() {
                 >
                   {msg.content}
                 </ReactMarkdown>
-                {msg.role === "assistant" && (
-                  <button
-                    className="text-sm mt-2 text-gray-400"
-                    onClick={() => navigator.clipboard.writeText(msg.content)}
-                  >
-                    Copy
-                  </button>
-                )}
               </div>
             ))}
 
